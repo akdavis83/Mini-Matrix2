@@ -1,0 +1,93 @@
+<link rel="icon" href="https://fav.farm/🔥" />
+
+<style>
+    @import url("https://webgl2fundamentals.org/webgl/resources/webgl-tutorials.css");
+body {
+  margin: 0;
+}
+canvas {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  background-color: black;
+}
+
+</style>
+<canvas id="c"></canvas>
+  <!--
+for most samples webgl-utils only provides shader compiling/linking and
+canvas resizing because why clutter the examples with code that's the same in every sample.
+See https://webgl2fundamentals.org/webgl/lessons/webgl-boilerplate.html
+and https://webgl2fundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+for webgl-utils, m3, m4, and webgl-lessons-ui.
+-->
+<script src="https://webgl2fundamentals.org/webgl/resources/webgl-utils.js"></script>
+<script>
+    'use strict';
+const gl = document.querySelector('#c').getContext('webgl2');
+
+const vs = `#version 300 es
+uniform int numVerts;
+uniform float time;
+
+// hash function from https://www.shadertoy.com/view/4djSRW
+// given a value between 0 and 1
+// returns a value between 0 and 1 that *appears* kind of random
+float hash(float p) {
+  vec2 p2 = fract(vec2(p * 5.3983, p * 5.4427));
+  p2 += dot(p2.yx, p2.xy + vec2(21.5351, 14.3137));
+  return fract(p2.x * p2.y * 95.4337);
+}
+
+void main() {
+  float u = float(gl_VertexID) / float(numVerts);  // goes from 0 to 1
+  float off = floor(time + u) / 1000.0;            // changes once per second per vertex
+  float x = hash(u + off) * 2.0 - 1.0;             // random position
+  float y = fract(time + u) * -2.0 + 1.0;          // 1.0 ->  -1.0
+
+  gl_Position = vec4(x, y, 0, 1);
+  gl_PointSize = 2.0;
+}
+`;
+
+const fs = `#version 300 es
+precision highp float;
+
+out vec4 outColor;
+
+void main() {
+  outColor = vec4(0, 1, 0, 1);
+}
+`;
+
+// setup GLSL program
+const program = webglUtils.createProgramFromSources(gl, [vs, fs]);
+const numVertsLoc = gl.getUniformLocation(program, 'numVerts');
+const timeLoc = gl.getUniformLocation(program, 'time');
+
+// Make a buffer with just a count in it.
+
+const numVerts = 4000;
+
+// draw
+function render(time) {
+  time *= 0.00000001;  // convert to seconds
+
+  webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+  gl.viewport(1, 1, gl.canvas.width, gl.canvas.height);
+
+  gl.useProgram(program);
+
+  // tell the shader the number of verts
+  gl.uniform1i(numVertsLoc, numVerts);
+  // tell the shader the time
+  gl.uniform1f(timeLoc, time);
+
+  const offset = 0;
+  gl.drawArrays(gl.TRIANGLES, offset, numVerts);
+
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+</script>
